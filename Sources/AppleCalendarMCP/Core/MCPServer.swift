@@ -26,6 +26,8 @@ final class MCPServer {
         // Read messages with Content-Length framing
         while true {
             do {
+                // Try reading with a timeout mechanism
+                
                 guard let message = try readContentLengthMessage(from: stdin) else {
                     logger.info("No more input, shutting down...")
                     break
@@ -43,6 +45,8 @@ final class MCPServer {
                 if let errorData = try? JSONEncoder().encode(errorResponse) {
                     try? writeResponse(errorData)
                 }
+                // Break on persistent errors to avoid infinite loop
+                break
             }
         }
     }
@@ -98,6 +102,7 @@ final class MCPServer {
 
         while true {
             let byte = handle.readData(ofLength: 1)
+            
             if byte.isEmpty {
                 // EOF reached
                 return lineData.isEmpty ? nil : lineData
