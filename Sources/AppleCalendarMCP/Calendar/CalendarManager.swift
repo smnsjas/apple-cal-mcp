@@ -85,6 +85,20 @@ final class CalendarManager {
     /// - Returns: Array of matching EKCalendar objects
     /// - Throws: No throws, but logs warning if named calendars are not found
     func getCalendars(named names: [String]? = nil) throws -> [EKCalendar] {
+        // Check if we have permission - return empty if not authorized
+        let authStatus = EKEventStore.authorizationStatus(for: .event)
+        let isAuthorized: Bool
+        if #available(macOS 14.0, *) {
+            isAuthorized = authStatus == .authorized || authStatus == .fullAccess
+        } else {
+            isAuthorized = authStatus == .authorized
+        }
+        
+        guard isAuthorized else {
+            logger.warning("Calendar access not authorized, returning empty calendar list")
+            return []
+        }
+        
         let allCalendars = eventStore.calendars(for: .event)
 
         guard let targetNames = names else {
@@ -113,6 +127,14 @@ final class CalendarManager {
     ///   - calendars: Optional array of specific calendars to query (nil = all calendars)
     /// - Returns: Array of EKEvent objects matching the criteria
     func getEvents(from startDate: Date, to endDate: Date, calendars: [EKCalendar]? = nil) async -> [EKEvent] {
+        // Request permissions if needed
+        do {
+            try await requestCalendarAccess()
+        } catch {
+            logger.error("Calendar access denied: \(error)")
+            return []
+        }
+        
         // Apply rate limiting to protect EventKit from bursts
         await rateLimiter.waitIfNeeded()
 

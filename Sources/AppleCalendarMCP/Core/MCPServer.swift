@@ -15,12 +15,8 @@ final class MCPServer {
     }
 
     func start() async throws {
-        logger.info("Initializing calendar access...")
-
-        // Request calendar permissions upfront
-        try await calendarManager.requestCalendarAccess()
-
-        logger.info("Calendar access granted. Starting MCP server...")
+        logger.info("Starting MCP server...")
+        logger.info("Calendar permissions will be requested when needed...")
         logger.info("Reading JSON-RPC requests from stdin...")
 
         // Set up stdin/stdout communication for MCP protocol
@@ -94,14 +90,18 @@ final class MCPServer {
         while true {
             let byte = handle.readData(ofLength: 1)
             if byte.isEmpty {
+                // EOF reached
                 return lineData.isEmpty ? nil : lineData
             }
 
-            if byte[0] == 0x0A { // newline
+            let byteValue = byte[0]
+            if byteValue == 0x0A { // newline (\n)
                 return lineData
             }
-
-            lineData.append(byte)
+            
+            if byteValue != 0x0D { // skip carriage return (\r)
+                lineData.append(byte)
+            }
         }
     }
 

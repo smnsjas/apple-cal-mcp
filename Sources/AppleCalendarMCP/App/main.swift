@@ -16,12 +16,10 @@ struct AppleCalendarMCP: ParsableCommand {
         logger.logLevel = verbose ? .debug : .info
 
         logger.info("Starting Apple Calendar MCP Server")
-
-        // Use RunLoop to keep async code running
-        let runLoop = RunLoop.current
-        let server = MCPServer(logger: logger)
-
+        
+        // Use dispatchMain to keep the program running
         Task {
+            let server = MCPServer(logger: logger)
             do {
                 try await server.start()
             } catch {
@@ -29,9 +27,8 @@ struct AppleCalendarMCP: ParsableCommand {
                 Foundation.exit(1)
             }
         }
-
-        // Keep the run loop running
-        runLoop.run()
+        
+        dispatchMain()
     }
 }
 

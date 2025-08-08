@@ -21,7 +21,13 @@
       "Bash(make:*)",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(sudo cp:*)",
+      "Bash(sudo chmod:*)",
+      "Bash(~/bin/apple-cal-mcp:*)",
+      "Bash(/Users/jasonsimons/apple-cal-mcp:*)",
+      "Bash(timeout:*)",
+      "Bash(otool:*)"
     ],
     "deny": []
   }
