@@ -33,7 +33,8 @@
       "Bash(ldd:*)",
       "Bash(./.build/release/apple-cal-mcp:*)",
       "Bash(sudo chown:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(ln:*)"
     ],
     "deny": []
   }

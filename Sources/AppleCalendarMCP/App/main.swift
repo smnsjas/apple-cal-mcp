@@ -18,18 +18,23 @@ struct AppleCalendarMCP: ParsableCommand {
 
         logger.info("Starting Apple Calendar MCP Server (permissions will be requested when needed)")
         
-        // Use dispatchMain to keep the program running
+        let server = MCPServer(logger: logger)
+        
+        // Create a semaphore to keep the program running
+        let semaphore = DispatchSemaphore(value: 0)
+        
         Task {
-            let server = MCPServer(logger: logger)
             do {
                 try await server.start()
             } catch {
                 logger.error("Server error: \(error)")
                 Foundation.exit(1)
             }
+            semaphore.signal()
         }
         
-        dispatchMain()
+        // Wait indefinitely
+        semaphore.wait()
     }
 }
 
