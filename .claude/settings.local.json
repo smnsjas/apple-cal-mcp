@@ -18,7 +18,9 @@
       "Bash(mv:*)",
       "Bash(./install.sh:*)",
       "Bash(./scripts/dev/test.sh:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

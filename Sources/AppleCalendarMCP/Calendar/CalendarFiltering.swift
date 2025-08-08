@@ -1,5 +1,5 @@
-import Foundation
 import EventKit
+import Foundation
 
 struct CalendarFilter {
     let includeNames: [String]?
@@ -10,7 +10,7 @@ struct CalendarFilter {
     let excludeSubscribed: Bool
     let excludeHolidays: Bool
     let excludeSports: Bool
-    
+
     init(
         includeNames: [String]? = nil,
         excludeNames: [String]? = nil,
@@ -35,7 +35,7 @@ struct CalendarFilter {
 extension CalendarManager {
     func getFilteredCalendars(filter: CalendarFilter) throws -> [EKCalendar] {
         let allCalendars = eventStore.calendars(for: .event)
-        
+
         return allCalendars.filter { calendar in
             // Include by name filter
             if let includeNames = filter.includeNames {
@@ -43,38 +43,38 @@ extension CalendarManager {
                     return false
                 }
             }
-            
+
             // Exclude by name filter
             if let excludeNames = filter.excludeNames {
                 if excludeNames.contains(calendar.title) {
                     return false
                 }
             }
-            
+
             // Include by account filter
             if let includeAccounts = filter.includeAccounts {
                 if !includeAccounts.contains(calendar.source.title) {
                     return false
                 }
             }
-            
+
             // Exclude by account filter
             if let excludeAccounts = filter.excludeAccounts {
                 if excludeAccounts.contains(calendar.source.title) {
                     return false
                 }
             }
-            
+
             // Exclude read-only calendars
             if filter.excludeReadOnly && !calendar.allowsContentModifications {
                 return false
             }
-            
+
             // Exclude subscribed calendars
             if filter.excludeSubscribed && calendar.source.sourceType == .subscribed {
                 return false
             }
-            
+
             // Exclude holiday calendars
             if filter.excludeHolidays {
                 let title = calendar.title.lowercased()
@@ -82,23 +82,23 @@ extension CalendarManager {
                     return false
                 }
             }
-            
+
             // Exclude sports calendars
             if filter.excludeSports {
                 let title = calendar.title.lowercased()
-                if title.contains("hurricanes") || 
-                   title.contains("orange") || 
-                   title.contains("ncaa") || 
+                if title.contains("hurricanes") ||
+                   title.contains("orange") ||
+                   title.contains("ncaa") ||
                    title.contains("football") ||
                    title.contains("sports") {
                     return false
                 }
             }
-            
+
             return true
         }
     }
-    
+
     func getWorkCalendars() throws -> [EKCalendar] {
         return try getFilteredCalendars(filter: CalendarFilter(
             includeNames: ["Calendar", "Work"],
@@ -107,7 +107,7 @@ extension CalendarManager {
             excludeSports: true
         ))
     }
-    
+
     func getPersonalCalendars() throws -> [EKCalendar] {
         return try getFilteredCalendars(filter: CalendarFilter(
             excludeNames: ["Birthdays", "US Holidays"],
@@ -116,7 +116,7 @@ extension CalendarManager {
             excludeSports: true
         ))
     }
-    
+
     func getMainCalendars() throws -> [EKCalendar] {
         // Most relevant calendars for conflict checking
         return try getFilteredCalendars(filter: CalendarFilter(
@@ -138,10 +138,10 @@ struct CalendarFilterRequest: Codable {
     let excludeSubscribed: Bool?
     let excludeHolidays: Bool?
     let excludeSports: Bool?
-    
+
     enum CodingKeys: String, CodingKey {
         case includeNames = "include_names"
-        case excludeNames = "exclude_names" 
+        case excludeNames = "exclude_names"
         case includeAccounts = "include_accounts"
         case excludeAccounts = "exclude_accounts"
         case excludeReadOnly = "exclude_read_only"
@@ -149,7 +149,7 @@ struct CalendarFilterRequest: Codable {
         case excludeHolidays = "exclude_holidays"
         case excludeSports = "exclude_sports"
     }
-    
+
     func toCalendarFilter() -> CalendarFilter {
         return CalendarFilter(
             includeNames: includeNames,

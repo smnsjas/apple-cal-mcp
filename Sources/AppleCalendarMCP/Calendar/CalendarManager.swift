@@ -1,5 +1,5 @@
-import Foundation
 import EventKit
+import Foundation
 import Logging
 
 // MARK: - Rate Limiting Actor
@@ -8,16 +8,16 @@ import Logging
 actor RateLimiter {
     private var lastRequestTime: Date = .distantPast
     private let minimumInterval: TimeInterval = 0.1  // 100ms minimum between requests
-    
+
     func waitIfNeeded() async {
         let now = Date()
         let elapsed = now.timeIntervalSince(lastRequestTime)
-        
+
         if elapsed < minimumInterval {
             let waitTime = minimumInterval - elapsed
             try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
         }
-        
+
         lastRequestTime = Date()
     }
 }
@@ -31,13 +31,13 @@ final class CalendarManager {
     let eventStore = EKEventStore()
     private let logger: Logger
     private let rateLimiter = RateLimiter()
-    
+
     init(logger: Logger) {
         self.logger = logger
     }
-    
+
     // MARK: - EventKit Main Thread Considerations
-    
+
     // EventKit operations are generally thread-safe in modern macOS/iOS versions.
     // However, if intermittent issues occur, consider marshaling EventKit access
     // to the main thread using:
@@ -49,7 +49,7 @@ final class CalendarManager {
     // This is typically only necessary for complex operations or when integrating
     // with UI components. The current implementation should work reliably for
     // headless MCP server usage.
-    
+
     /// Requests calendar access permissions from the system
     ///
     /// Shows system permission dialog if access is not determined. Throws CalendarError
@@ -59,7 +59,7 @@ final class CalendarManager {
     /// - Throws: CalendarError.unknownAuthorizationStatus for unexpected status
     func requestCalendarAccess() async throws {
         let authorizationStatus = EKEventStore.authorizationStatus(for: .event)
-        
+
         switch authorizationStatus {
         case .authorized, .fullAccess, .writeOnly:
             logger.info("Calendar access already authorized")
@@ -78,7 +78,7 @@ final class CalendarManager {
             throw CalendarError.unknownAuthorizationStatus
         }
     }
-    
+
     /// Retrieves calendars from EventKit, optionally filtered by names
     ///
     /// - Parameter names: Optional array of calendar names to filter by (case-sensitive)
@@ -86,22 +86,22 @@ final class CalendarManager {
     /// - Throws: No throws, but logs warning if named calendars are not found
     func getCalendars(named names: [String]? = nil) throws -> [EKCalendar] {
         let allCalendars = eventStore.calendars(for: .event)
-        
+
         guard let targetNames = names else {
             return allCalendars
         }
-        
+
         let filteredCalendars = allCalendars.filter { calendar in
             targetNames.contains(calendar.title)
         }
-        
+
         if filteredCalendars.isEmpty {
             logger.warning("No calendars found with names: \(targetNames)")
         }
-        
+
         return filteredCalendars
     }
-    
+
     /// Retrieves events from calendars within the specified date range
     ///
     /// Applies rate limiting to protect EventKit from burst requests. Uses EventKit
@@ -115,9 +115,9 @@ final class CalendarManager {
     func getEvents(from startDate: Date, to endDate: Date, calendars: [EKCalendar]? = nil) async -> [EKEvent] {
         // Apply rate limiting to protect EventKit from bursts
         await rateLimiter.waitIfNeeded()
-        
+
         let predicate: NSPredicate
-        
+
         if let calendars = calendars {
             predicate = eventStore.predicateForEvents(
                 withStart: startDate,
@@ -131,10 +131,10 @@ final class CalendarManager {
                 calendars: nil
             )
         }
-        
+
         return eventStore.events(matching: predicate)
     }
-    
+
     func getCalendarsFromRequest(calendarNames: [String]?, calendarFilter: CalendarFilterRequest?) throws -> [EKCalendar] {
         if let filter = calendarFilter {
             return try getFilteredCalendars(filter: filter.toCalendarFilter())
@@ -144,7 +144,7 @@ final class CalendarManager {
             return try getMainCalendars() // Default to main calendars instead of all
         }
     }
-    
+
     /// Analyzes calendar conflicts for multiple dates and time preferences
     ///
     /// For each date, determines the appropriate time range based on timeType and checks
@@ -167,13 +167,13 @@ final class CalendarManager {
         for date in dates {
             let dateString = DateUtils.dateOnlyFormatter.string(from: date)
             let (startTime, endTime) = try getTimeRange(for: date, timeType: timeType, eveningHours: eveningHours)
-            
+
             let events = await getEvents(from: startTime, to: endTime, calendars: calendars)
             let conflictingEvents = try filterConflictingEvents(events, for: date, timeType: timeType, eveningHours: eveningHours)
-            
+
             if conflictingEvents.isEmpty {
                 results[dateString] = ConflictResult(
-                    status: .available, 
+                    status: .available,
                     events: [],
                     summary: nil,
                     totalConflicts: nil,
@@ -182,7 +182,7 @@ final class CalendarManager {
             } else {
                 let analyzer = ConflictAnalyzer()
                 let conflictReasons = analyzer.analyzeConflicts(conflictingEvents, for: date, timeType: timeType)
-                
+
                 let eventDetails = zip(conflictingEvents, conflictReasons).map { (event, reason) in
                     EventDetail(
                         title: event.title ?? "Untitled",
@@ -195,16 +195,16 @@ final class CalendarManager {
                         suggestion: reason.suggestion
                     )
                 }
-                
+
                 let summary = analyzer.generateConflictSummary(conflictReasons)
                 let totalConflicts = conflictingEvents.count
-                
+
                 // Count conflicts by type
                 let conflictsByType = Dictionary(grouping: conflictReasons, by: { $0.type.rawValue })
                     .mapValues { $0.count }
-                
+
                 results[dateString] = ConflictResult(
-                    status: .conflict, 
+                    status: .conflict,
                     events: eventDetails,
                     summary: summary,
                     totalConflicts: totalConflicts,
@@ -212,21 +212,21 @@ final class CalendarManager {
                 )
             }
         }
-        
+
         return results
     }
-    
+
     private func getTimeRange(for date: Date, timeType: TimeType, eveningHours: EveningHours) throws -> (Date, Date) {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: date)
-        
+
         switch timeType {
         case .allDay:
             guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) else {
                 throw CalendarError.computationFailed(reason: "Failed to calculate end of day - Calendar API failure")
             }
             return (startOfDay, endOfDay)
-            
+
         case .evening:
             guard let eveningStart = calendar.date(
                 bySettingHour: eveningHours.startHour,
@@ -245,7 +245,7 @@ final class CalendarManager {
                 throw CalendarError.computationFailed(reason: "Failed to set evening end time - Calendar API failure")
             }
             return (eveningStart, eveningEnd)
-            
+
         case .weekend:
             let weekday = calendar.component(.weekday, from: date)
             if weekday == 1 || weekday == 7 || weekday == 6 { // Sunday, Saturday, or Friday
@@ -275,7 +275,7 @@ final class CalendarManager {
             }
         }
     }
-    
+
     private func filterConflictingEvents(
         _ events: [EKEvent],
         for date: Date,
@@ -284,18 +284,18 @@ final class CalendarManager {
     ) throws -> [EKEvent] {
         _ = Calendar.current
         let (rangeStart, rangeEnd) = try getTimeRange(for: date, timeType: timeType, eveningHours: eveningHours)
-        
+
         return events.filter { event in
             // Skip all-day events for evening checks unless specifically looking at all-day
             if timeType == .evening && event.isAllDay {
                 return false
             }
-            
+
             // Event overlaps with our time range
             return event.startDate < rangeEnd && event.endDate > rangeStart
         }
     }
-    
+
     /// Finds available time slots within a date range matching duration requirements
     ///
     /// Scans each day in the range for gaps between events that meet the minimum duration.
@@ -318,15 +318,15 @@ final class CalendarManager {
         var availableSlots: [AvailableSlot] = []
         let calendar = Calendar.current
         var currentDate = calendar.startOfDay(for: dateRange.start)
-        
+
         while currentDate <= dateRange.end {
             let (dayStart, dayEnd) = try getTimeRange(for: currentDate, timeType: timePreferences, eveningHours: eveningHours)
             let events = await getEvents(from: dayStart, to: dayEnd, calendars: calendars)
             let relevantEvents = try filterConflictingEvents(events, for: currentDate, timeType: timePreferences, eveningHours: eveningHours)
-            
+
             // Sort events by start time
             let sortedEvents = relevantEvents.sorted { $0.startDate < $1.startDate }
-            
+
             // Find gaps between events
             var searchStart = dayStart
             for event in sortedEvents {
@@ -340,7 +340,7 @@ final class CalendarManager {
                 }
                 searchStart = max(searchStart, event.endDate)
             }
-            
+
             // Check for slot after last event
             let finalGapDuration = dayEnd.timeIntervalSince(searchStart)
             if finalGapDuration >= duration {
@@ -350,13 +350,13 @@ final class CalendarManager {
                     duration: finalGapDuration
                 ))
             }
-            
+
             guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else {
                 throw CalendarError.computationFailed(reason: "Failed to increment date - Calendar API failure")
             }
             currentDate = nextDate
         }
-        
+
         return availableSlots
     }
 }

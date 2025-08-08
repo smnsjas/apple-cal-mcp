@@ -1,6 +1,6 @@
+import EventKit
 import Foundation
 import Logging
-import EventKit
 
 /// Handles MCP JSON-RPC 2.0 protocol communication over stdin/stdout
 ///
@@ -12,16 +12,16 @@ final class JSONRPCHandler {
     private let logger: Logger
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
-    
+
     init(calendarManager: CalendarManager, logger: Logger) {
         self.calendarManager = calendarManager
         self.logger = logger
-        
+
         // Configure ISO8601 date formatting using centralized DateUtils
         decoder.dateDecodingStrategy = .iso8601
         encoder.dateEncodingStrategy = .iso8601
     }
-    
+
     /// Processes a complete MCP JSON-RPC request and returns encoded response
     ///
     /// Handles all MCP protocol methods with comprehensive error handling and logging.
@@ -32,18 +32,18 @@ final class JSONRPCHandler {
     func handleRequest(_ data: Data) async -> Data {
         do {
             let request = try decoder.decode(MCPRequest.self, from: data)
-            
+
             // Create correlated logging metadata with request ID and method
             let requestIdString = request.id.map { "\($0.value)" } ?? "null"
             let metadata: Logger.Metadata = [
                 "requestId": "\(requestIdString)",
                 "method": "\(request.method)"
             ]
-            
+
             logger.debug("Processing request", metadata: metadata)
-            
+
             let response: MCPResponse
-            
+
             switch request.method {
             case "initialize":
                 response = handleInitialize(request: request)
@@ -57,14 +57,14 @@ final class JSONRPCHandler {
                     error: MCPError(code: -32601, message: "Method not found", data: nil)
                 )
             }
-            
+
             logger.debug("Request completed successfully", metadata: metadata)
             return try encoder.encode(response)
         } catch {
             // For parse errors, we don't have request metadata
             logger.error("Error handling request: \(error)")
             let errorResponse = createErrorResponse(id: nil, error: MCPError.parseError("Parse error: \(error.localizedDescription)"))
-            
+
             do {
                 return try encoder.encode(errorResponse)
             } catch {
@@ -73,11 +73,11 @@ final class JSONRPCHandler {
             }
         }
     }
-    
+
     func createErrorResponse(id: MCPRequestID?, error: MCPError) -> MCPResponse {
-        return MCPResponse(id: id ?? nil, error: error)
+        return MCPResponse(id: id, error: error)
     }
-    
+
     private func handleInitialize(request: MCPRequest) -> MCPResponse {
         let result: [String: Any] = [
             "protocolVersion": "2024-11-05",
@@ -89,10 +89,10 @@ final class JSONRPCHandler {
                 "version": "1.0.0"
             ]
         ]
-        
+
         return MCPResponse(id: request.id, result: result)
     }
-    
+
     private func handleToolsList(request: MCPRequest) -> MCPResponse {
         let tools: [[String: Any]] = [
             [
@@ -110,7 +110,7 @@ final class JSONRPCHandler {
                                     "description": "Only include calendars with these names"
                                 ],
                                 "exclude_names": [
-                                    "type": "array", 
+                                    "type": "array",
                                     "items": ["type": "string"],
                                     "description": "Exclude calendars with these names"
                                 ],
@@ -129,7 +129,7 @@ final class JSONRPCHandler {
                                     "description": "Exclude holiday and birthday calendars"
                                 ],
                                 "exclude_sports": [
-                                    "type": "boolean", 
+                                    "type": "boolean",
                                     "description": "Exclude sports team calendars"
                                 ],
                                 "exclude_subscribed": [
@@ -240,10 +240,10 @@ final class JSONRPCHandler {
                 ]
             ]
         ]
-        
+
         return MCPResponse(id: request.id, result: ["tools": tools])
     }
-    
+
     private func handleToolCall(request: MCPRequest) async -> MCPResponse {
         guard let params = request.getParams(),
               let name = params["name"] as? String,
@@ -253,7 +253,7 @@ final class JSONRPCHandler {
                 error: MCPError(code: -32602, message: "Invalid parameters", data: nil)
             )
         }
-        
+
         // Create tool-specific logging metadata
         let requestIdString = request.id.map { "\($0.value)" } ?? "null"
         let metadata: Logger.Metadata = [
@@ -261,12 +261,12 @@ final class JSONRPCHandler {
             "method": "tools/call",
             "tool": "\(name)"
         ]
-        
+
         logger.debug("Processing tool call", metadata: metadata)
-        
+
         do {
             let result: [String: Any]
-            
+
             switch name {
             case "check_calendar_conflicts":
                 result = try await handleCheckConflicts(arguments: arguments)
@@ -282,7 +282,7 @@ final class JSONRPCHandler {
                     error: MCPError(code: -32602, message: "Unknown tool", data: nil)
                 )
             }
-            
+
             logger.debug("Tool call completed successfully", metadata: metadata)
             return MCPResponse(id: request.id, result: ["content": [["type": "text", "text": try String(data: JSONSerialization.data(withJSONObject: result, options: .prettyPrinted), encoding: .utf8) ?? ""]]])
         } catch {
@@ -293,26 +293,26 @@ final class JSONRPCHandler {
             )
         }
     }
-    
+
     private func handleCheckConflicts(arguments: [String: Any]) async throws -> [String: Any] {
         let argumentsData = try JSONSerialization.data(withJSONObject: arguments)
         let request = try decoder.decode(CheckConflictsRequest.self, from: argumentsData)
-        
+
         let dates = try DateUtils.parseDates(request.dates)
-        
+
         let calendars = try calendarManager.getCalendarsFromRequest(
             calendarNames: request.calendarNames,
             calendarFilter: request.calendarFilter
         )
         let eveningHours = request.eveningHours ?? EveningHours()
-        
+
     let conflicts = try await calendarManager.checkConflicts(
             for: dates,
             timeType: request.timeType,
             calendars: calendars,
             eveningHours: eveningHours
         )
-        
+
         var result: [String: Any] = [:]
         for (dateString, conflictResult) in conflicts {
             var eventData: [[String: Any]] = []
@@ -322,83 +322,83 @@ final class JSONRPCHandler {
                     "time": event.timeString,
                     "is_all_day": event.isAllDay
                 ]
-                
+
                 if let conflictType = event.conflictType {
                     eventDict["conflict_type"] = conflictType
                 }
-                
+
                 if let severity = event.severity {
                     eventDict["severity"] = severity
                 }
-                
+
                 if let reason = event.reason {
                     eventDict["reason"] = reason
                 }
-                
+
                 if let suggestion = event.suggestion {
                     eventDict["suggestion"] = suggestion
                 }
-                
+
                 eventData.append(eventDict)
             }
-            
+
             var dateResult: [String: Any] = [
                 "status": conflictResult.status.rawValue,
                 "events": eventData
             ]
-            
+
             if let summary = conflictResult.summary {
                 dateResult["summary"] = summary
             }
-            
+
             if let totalConflicts = conflictResult.totalConflicts {
                 dateResult["total_conflicts"] = totalConflicts
             }
-            
+
             if let conflictsByType = conflictResult.conflictsByType {
                 dateResult["conflicts_by_type"] = conflictsByType
             }
-            
+
             result[dateString] = dateResult
         }
-        
+
         return result
     }
-    
+
     private func handleGetEvents(arguments: [String: Any]) async throws -> [String: Any] {
         let argumentsData = try JSONSerialization.data(withJSONObject: arguments)
         let request = try decoder.decode(GetEventsRequest.self, from: argumentsData)
-        
+
         let startDate = try DateUtils.parseDate(request.startDate)
         let endDate = try DateUtils.parseDate(request.endDate)
-        
+
         try DateUtils.validateDateRange(start: startDate, end: endDate)
-        
+
         let calendars = try calendarManager.getCalendarsFromRequest(
             calendarNames: request.calendarNames,
             calendarFilter: request.calendarFilter
         )
         let events = await calendarManager.getEvents(from: startDate, to: endDate, calendars: calendars)
-        
+
         let eventData = events.map { $0.formattedOutput }
-        
+
         return ["events": eventData]
     }
-    
+
     private func handleFindSlots(arguments: [String: Any]) async throws -> [String: Any] {
         let argumentsData = try JSONSerialization.data(withJSONObject: arguments)
         let request = try decoder.decode(FindSlotsRequest.self, from: argumentsData)
-        
+
         let startDate = try DateUtils.parseDate(request.dateRange.start)
         let endDate = try DateUtils.parseDate(request.dateRange.end)
-        
+
         try DateUtils.validateDateRange(start: startDate, end: endDate)
-        
+
         // Validate duration
         guard request.durationMinutes > 0 && request.durationMinutes <= 1440 else { // Max 24 hours
             throw ValidationError.invalidDuration(minutes: request.durationMinutes)
         }
-        
+
         let dateRange = DateInterval(start: startDate, end: endDate)
         let duration = TimeInterval(request.durationMinutes * 60)
         let calendars = try calendarManager.getCalendarsFromRequest(
@@ -406,7 +406,7 @@ final class JSONRPCHandler {
             calendarFilter: request.calendarFilter
         )
         let eveningHours = request.eveningHours ?? EveningHours()
-        
+
     let slots = try await calendarManager.findAvailableSlots(
             in: dateRange,
             duration: duration,
@@ -414,21 +414,21 @@ final class JSONRPCHandler {
             calendars: calendars,
             eveningHours: eveningHours
         )
-        
+
         let slotData = slots.map { $0.formattedOutput }
-        
+
         return ["available_slots": slotData]
     }
-    
+
     private func handleListCalendars(arguments: [String: Any]) async throws -> [String: Any] {
         let argumentsData = try JSONSerialization.data(withJSONObject: arguments)
         let request = try decoder.decode(ListCalendarsRequest.self, from: argumentsData)
-        
+
         let calendars = try calendarManager.getCalendarsFromRequest(
             calendarNames: nil,
             calendarFilter: request.calendarFilter
         )
-        
+
         let calendarData = calendars.map { calendar in
             [
                 "name": calendar.title,
@@ -439,14 +439,14 @@ final class JSONRPCHandler {
                 "is_subscribed": calendar.source.sourceType == .subscribed
             ] as [String: Any]
         }
-        
+
         return [
             "calendars": calendarData,
             "count": calendars.count,
             "total_available": calendarManager.eventStore.calendars(for: .event).count
         ]
     }
-    
+
     private func sourceTypeDescription(_ sourceType: EKSourceType) -> String {
         switch sourceType {
         case .local:
@@ -465,7 +465,7 @@ final class JSONRPCHandler {
             return "unknown"
         }
     }
-    
+
     private func calendarTypeDescription(_ calType: EKCalendarType) -> String {
         switch calType {
         case .local:

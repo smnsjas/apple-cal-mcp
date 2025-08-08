@@ -14,47 +14,47 @@ struct MCPRequest: Codable {
     let id: MCPRequestID
     let method: String
     let params: [String: AnyCodable]?
-    
+
     enum CodingKeys: String, CodingKey {
         case jsonrpc, id, method, params
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         jsonrpc = try container.decode(String.self, forKey: .jsonrpc)
-        
+
         // ID can be string, number, or null
         if container.contains(.id) {
             id = try? container.decode(AnyCodable.self, forKey: .id)
         } else {
             id = nil
         }
-        
+
         method = try container.decode(String.self, forKey: .method)
-        
+
         if container.contains(.params) {
             params = try container.decode([String: AnyCodable].self, forKey: .params)
         } else {
             params = nil
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(jsonrpc, forKey: .jsonrpc)
-        
+
         if let id = id {
             try container.encode(id, forKey: .id)
         } else {
             try container.encodeNil(forKey: .id)
         }
-        
+
         try container.encode(method, forKey: .method)
         if let params = params {
             try container.encode(params, forKey: .params)
         }
     }
-    
+
     func getParams() -> [String: Any]? {
         return params?.mapValues { $0.value }
     }
@@ -69,27 +69,27 @@ struct MCPResponse: Encodable {
     let id: MCPRequestID
     let result: [String: Any]?
     let error: MCPError?
-    
+
     enum CodingKeys: String, CodingKey {
         case jsonrpc, id, result, error
     }
-    
+
     init(id: MCPRequestID, result: [String: Any]? = nil, error: MCPError? = nil) {
         self.id = id
         self.result = result
         self.error = error
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(jsonrpc, forKey: .jsonrpc)
-        
+
         if let id = id {
             try container.encode(id, forKey: .id)
         } else {
             try container.encodeNil(forKey: .id)
         }
-        
+
         if let result = result {
             try container.encode(AnyCodableDict(result), forKey: .result)
         }
@@ -107,11 +107,11 @@ struct MCPError: Error, Encodable {
     let code: Int
     let message: String
     let data: [String: Any]?
-    
+
     enum CodingKeys: String, CodingKey {
         case code, message, data
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(code, forKey: .code)
@@ -120,24 +120,24 @@ struct MCPError: Error, Encodable {
             try container.encode(AnyCodableDict(data), forKey: .data)
         }
     }
-    
+
     // JSON-RPC error code constants
     static func parseError(_ message: String) -> MCPError {
         return MCPError(code: -32700, message: message, data: nil)
     }
-    
+
     static func invalidRequest(_ message: String) -> MCPError {
         return MCPError(code: -32600, message: message, data: nil)
     }
-    
+
     static func methodNotFound(_ message: String) -> MCPError {
         return MCPError(code: -32601, message: message, data: nil)
     }
-    
+
     static func invalidParams(_ message: String) -> MCPError {
         return MCPError(code: -32602, message: message, data: nil)
     }
-    
+
     static func internalError(_ message: String) -> MCPError {
         return MCPError(code: -32603, message: message, data: nil)
     }
@@ -154,7 +154,7 @@ enum ValidationError: Error, LocalizedError {
     case invalidTimeFormat(String, expected: String = "HH:mm")
     case invalidTimeValues(String)
     case invalidDuration(minutes: Int, validRange: String = "1-1440")
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidDateFormat(let dateString, let expected):
@@ -203,7 +203,7 @@ struct EveningHours: Codable {
     let startMinute: Int
     let endHour: Int
     let endMinute: Int
-    
+
     init(start: String = "17:00", end: String = "23:00") throws {
         guard let (startHour, startMinute) = Self.parseTime(start) else {
             throw ValidationError.invalidTimeFormat(start)
@@ -211,13 +211,13 @@ struct EveningHours: Codable {
         guard let (endHour, endMinute) = Self.parseTime(end) else {
             throw ValidationError.invalidTimeFormat(end)
         }
-        
+
         self.startHour = startHour
         self.startMinute = startMinute
         self.endHour = endHour
         self.endMinute = endMinute
     }
-    
+
     // Convenience initializer with defaults
     init() {
         self.startHour = 17
@@ -225,19 +225,19 @@ struct EveningHours: Codable {
         self.endHour = 23
         self.endMinute = 0
     }
-    
+
     init(startHour: Int, startMinute: Int, endHour: Int, endMinute: Int) throws {
         guard Self.isValidTime(hour: startHour, minute: startMinute),
               Self.isValidTime(hour: endHour, minute: endMinute) else {
             throw ValidationError.invalidTimeValues("Hours must be 0-23, minutes 0-59")
         }
-        
+
         self.startHour = startHour
         self.startMinute = startMinute
         self.endHour = endHour
         self.endMinute = endMinute
     }
-    
+
     private static func parseTime(_ timeString: String) -> (Int, Int)? {
         let components = timeString.split(separator: ":")
         guard components.count == 2,
@@ -248,7 +248,7 @@ struct EveningHours: Codable {
         }
         return (hour, minute)
     }
-    
+
     private static func isValidTime(hour: Int, minute: Int) -> Bool {
         return (0...23).contains(hour) && (0...59).contains(minute)
     }
@@ -267,7 +267,7 @@ struct EventDetail: Codable {
     let severity: String?
     let reason: String?
     let suggestion: String?
-    
+
     init(
         title: String,
         startTime: Date,
@@ -287,7 +287,7 @@ struct EventDetail: Codable {
         self.reason = reason
         self.suggestion = suggestion
     }
-    
+
     var timeString: String {
         if isAllDay {
             return "All day - \(DateUtils.humanDateFormatter.string(from: startTime))"
@@ -317,7 +317,7 @@ struct AvailableSlot: Codable {
     let startTime: Date
     let endTime: Date
     let duration: TimeInterval
-    
+
     var durationMinutes: Int {
         return Int(duration / 60)
     }
@@ -339,11 +339,11 @@ struct CheckConflictsRequest: Codable {
     let calendarNames: [String]?
     let calendarFilter: CalendarFilterRequest?
     let eveningHours: EveningHours?
-    
+
     enum CodingKeys: String, CodingKey {
         case dates
         case timeType = "time_type"
-        case calendarNames = "calendar_names" 
+        case calendarNames = "calendar_names"
         case calendarFilter = "calendar_filter"
         case eveningHours = "evening_hours"
     }
@@ -361,7 +361,7 @@ struct GetEventsRequest: Codable {
     let endDate: String
     let calendarNames: [String]?
     let calendarFilter: CalendarFilterRequest?
-    
+
     enum CodingKeys: String, CodingKey {
         case startDate = "start_date"
         case endDate = "end_date"
@@ -386,7 +386,7 @@ struct FindSlotsRequest: Codable {
     let calendarNames: [String]?
     let calendarFilter: CalendarFilterRequest?
     let eveningHours: EveningHours?
-    
+
     enum CodingKeys: String, CodingKey {
         case dateRange = "date_range"
         case durationMinutes = "duration_minutes"
@@ -403,7 +403,7 @@ struct FindSlotsRequest: Codable {
 ///   - calendarFilter: Filtering options to select specific calendars
 struct ListCalendarsRequest: Codable {
     let calendarFilter: CalendarFilterRequest?
-    
+
     enum CodingKeys: String, CodingKey {
         case calendarFilter = "calendar_filter"
     }
@@ -419,11 +419,11 @@ struct DateRange: Codable {
 
 struct AnyCodableDict: Encodable {
     let dict: [String: Any]
-    
+
     init(_ dict: [String: Any]) {
         self.dict = dict
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         let encodableDict = dict.mapValues { AnyCodable($0) }
@@ -433,14 +433,14 @@ struct AnyCodableDict: Encodable {
 
 struct AnyCodable: Codable {
     let value: Any
-    
+
     init(_ value: Any) {
         self.value = value
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
+
         if let bool = try? container.decode(Bool.self) {
             value = bool
         } else if let int = try? container.decode(Int.self) {
@@ -457,10 +457,10 @@ struct AnyCodable: Codable {
             value = NSNull()
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        
+
         switch value {
         case let bool as Bool:
             try container.encode(bool)

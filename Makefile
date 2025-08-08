@@ -25,15 +25,10 @@ test:
 	swift test
 
 lint:
-	@./scripts/dev/lint.sh
+	@bash ./scripts/dev/lint.sh
 
 fix-lint:
-	@if command -v swiftlint >/dev/null 2>&1; then \
-		swiftlint --autocorrect; \
-	else \
-		echo "SwiftLint not found. Install with: brew install swiftlint" >&2; \
-		exit 127; \
-	fi
+	@bash -lc 'if command -v swiftlint >/dev/null 2>&1; then swiftlint --autocorrect; else echo "SwiftLint not found. Install with: brew install swiftlint" >&2; exit 127; fi'
 
 clean:
 	swift package clean
