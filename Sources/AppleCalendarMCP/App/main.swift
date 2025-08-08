@@ -1,6 +1,7 @@
 import ArgumentParser
 import Foundation
 import Logging
+import EventKit
 
 struct AppleCalendarMCP: ParsableCommand {
     static let configuration = CommandConfiguration(
@@ -15,7 +16,7 @@ struct AppleCalendarMCP: ParsableCommand {
         var logger = Logger(label: "apple-cal-mcp")
         logger.logLevel = verbose ? .debug : .info
 
-        logger.info("Starting Apple Calendar MCP Server")
+        logger.info("Starting Apple Calendar MCP Server (permissions will be requested when needed)")
         
         // Use dispatchMain to keep the program running
         Task {

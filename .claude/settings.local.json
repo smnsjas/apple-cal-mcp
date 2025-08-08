@@ -27,7 +27,13 @@
       "Bash(~/bin/apple-cal-mcp:*)",
       "Bash(/Users/jasonsimons/apple-cal-mcp:*)",
       "Bash(timeout:*)",
-      "Bash(otool:*)"
+      "Bash(otool:*)",
+      "Bash(codesign:*)",
+      "Bash(dtruss:*)",
+      "Bash(ldd:*)",
+      "Bash(./.build/release/apple-cal-mcp:*)",
+      "Bash(sudo chown:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }
