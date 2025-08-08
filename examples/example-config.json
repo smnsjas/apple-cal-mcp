@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "apple-calendar": {
+      "command": "/usr/local/bin/apple-cal-mcp",
+      "args": ["--verbose"],
+      "description": "Apple Calendar automation for conflict detection and availability checking"
+    }
+  }
+}

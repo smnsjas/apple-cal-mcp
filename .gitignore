@@ -1,0 +1,53 @@
+# Swift Package Manager
+.build/
+Package.resolved
+*.xcodeproj/
+*.xcworkspace/
+
+# Xcode
+*.xcuserdata/
+xcuserdata/
+DerivedData/
+*.hmap
+*.ipa
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/.history/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.cache/
+
+# Temporary files
+*.tmp
+*.temp
+.scratch/

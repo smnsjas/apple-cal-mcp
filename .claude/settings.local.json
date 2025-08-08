@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(swift build)",
+      "Bash(swift build:*)",
+      "Bash(swift test)",
+      "Bash(chmod:*)",
+      "Bash(./test_mcp.sh:*)",
+      "Bash(./test_simple.sh:*)",
+      "Bash(.build/debug/apple-cal-mcp:*)",
+      "Bash(python3:*)",
+      "Bash(swift:*)",
+      "Bash(./install.sh)",
+      "Bash(cp:*)",
+      "Bash(find:*)",
+      "Bash(test:*)",
+      "Bash(mv:*)",
+      "Bash(./install.sh:*)",
+      "Bash(./scripts/dev/test.sh:*)",
+      "Bash(make:*)"
+    ],
+    "deny": []
+  }
+}

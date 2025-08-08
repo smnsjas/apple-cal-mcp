@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:apple_cal_mcp}",
+            "name": "Debug apple-cal-mcp",
+            "program": "${workspaceFolder:apple_cal_mcp}/.build/debug/apple-cal-mcp",
+            "preLaunchTask": "swift: Build Debug apple-cal-mcp"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:apple_cal_mcp}",
+            "name": "Release apple-cal-mcp",
+            "program": "${workspaceFolder:apple_cal_mcp}/.build/release/apple-cal-mcp",
+            "preLaunchTask": "swift: Build Release apple-cal-mcp"
+        }
+    ]
+}
