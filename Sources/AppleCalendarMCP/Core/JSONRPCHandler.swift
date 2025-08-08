@@ -75,7 +75,7 @@ final class JSONRPCHandler {
     }
 
     func createErrorResponse(id: MCPRequestID?, error: MCPError) -> MCPResponse {
-        return MCPResponse(id: id, error: error)
+        return MCPResponse(id: id ?? nil, error: error)
     }
 
     private func handleInitialize(request: MCPRequest) -> MCPResponse {
