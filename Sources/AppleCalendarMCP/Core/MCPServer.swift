@@ -34,17 +34,26 @@ final class MCPServer {
                 logger.debug("Received message: \(String(data: message, encoding: .utf8) ?? "<invalid UTF-8>")")
 
                 let response = await jsonRPCHandler.handleRequest(message)
-                try writeContentLengthMessage(response, to: stdout)
+                try writeResponse(response)
 
             } catch {
                 logger.error("Error processing message: \(error)")
                 // Send error response if possible
                 let errorResponse = jsonRPCHandler.createErrorResponse(id: nil, error: .internalError("IO error: \(error)"))
                 if let errorData = try? JSONEncoder().encode(errorResponse) {
-                    try? writeContentLengthMessage(errorData, to: stdout)
+                    try? writeResponse(errorData)
                 }
             }
         }
+    }
+    
+    private func writeResponse(_ data: Data) throws {
+        let header = "Content-Length: \(data.count)\r\n\r\n"
+        print(header, terminator: "")
+        if let responseString = String(data: data, encoding: .utf8) {
+            print(responseString, terminator: "")
+        }
+        fflush(stdout)
     }
 
     private func readContentLengthMessage(from handle: FileHandle) throws -> Data? {
@@ -114,9 +123,7 @@ final class MCPServer {
         handle.write(headerData)
         handle.write(data)
 
-        // Ensure immediate delivery
-        if #available(macOS 10.15, *) {
-            try handle.synchronize()
-        }
+        // Flush the output
+        fflush(stdout)
     }
 }
