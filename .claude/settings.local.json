@@ -34,7 +34,10 @@
       "Bash(./.build/release/apple-cal-mcp:*)",
       "Bash(sudo chown:*)",
       "Bash(rm:*)",
-      "Bash(ln:*)"
+      "Bash(ln:*)",
+      "Bash(osascript:*)",
+      "Bash(__NEW_LINE__ echo \"\")",
+      "Bash(echo:*)"
     ],
     "deny": []
   }

@@ -61,8 +61,14 @@ final class CalendarManager {
         let authorizationStatus = EKEventStore.authorizationStatus(for: .event)
 
         switch authorizationStatus {
-        case .authorized, .fullAccess, .writeOnly:
+        case .authorized:
             logger.info("Calendar access already authorized")
+            return
+        case .fullAccess:
+            logger.info("Calendar full access already authorized")  
+            return
+        case .writeOnly:
+            logger.info("Calendar write-only access authorized")
             return
         case .notDetermined:
             logger.info("Requesting calendar access...")
@@ -89,7 +95,7 @@ final class CalendarManager {
         let authStatus = EKEventStore.authorizationStatus(for: .event)
         let isAuthorized: Bool
         if #available(macOS 14.0, *) {
-            isAuthorized = authStatus == .authorized || authStatus == .fullAccess
+            isAuthorized = authStatus == .authorized || authStatus == .fullAccess || authStatus == .writeOnly
         } else {
             isAuthorized = authStatus == .authorized
         }
