@@ -26,7 +26,7 @@ final class MCPServer {
         // Read messages with Content-Length framing
         while true {
             do {
-                // Try reading with a timeout mechanism
+                logger.debug("Waiting for message...")
                 
                 guard let message = try readContentLengthMessage(from: stdin) else {
                     logger.info("No more input, shutting down...")
@@ -104,8 +104,21 @@ final class MCPServer {
             let byte = handle.readData(ofLength: 1)
             
             if byte.isEmpty {
-                // EOF reached
-                return lineData.isEmpty ? nil : lineData
+                // EOF reached - only return nil if no data collected
+                // This allows for proper blocking behavior
+                if lineData.isEmpty {
+                    // Wait a bit before declaring true EOF
+                    Thread.sleep(forTimeInterval: 0.1)
+                    let retryByte = handle.readData(ofLength: 1)
+                    if retryByte.isEmpty {
+                        return nil
+                    } else {
+                        lineData.append(retryByte)
+                        continue
+                    }
+                } else {
+                    return lineData
+                }
             }
 
             let byteValue = byte[0]
