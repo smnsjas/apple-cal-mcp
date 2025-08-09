@@ -80,7 +80,7 @@ final class JSONRPCHandler {
 
     private func handleInitialize(request: MCPRequest) -> MCPResponse {
         let result: [String: Any] = [
-            "protocolVersion": "2024-11-05",
+            "protocolVersion": "2025-06-18",
             "capabilities": [
                 "tools": [:]
             ],

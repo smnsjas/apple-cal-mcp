@@ -104,21 +104,8 @@ final class MCPServer {
             let byte = handle.readData(ofLength: 1)
             
             if byte.isEmpty {
-                // EOF reached - only return nil if no data collected
-                // This allows for proper blocking behavior
-                if lineData.isEmpty {
-                    // Wait a bit before declaring true EOF
-                    Thread.sleep(forTimeInterval: 0.1)
-                    let retryByte = handle.readData(ofLength: 1)
-                    if retryByte.isEmpty {
-                        return nil
-                    } else {
-                        lineData.append(retryByte)
-                        continue
-                    }
-                } else {
-                    return lineData
-                }
+                // EOF reached
+                return lineData.isEmpty ? nil : lineData
             }
 
             let byteValue = byte[0]

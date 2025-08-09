@@ -37,7 +37,9 @@
       "Bash(ln:*)",
       "Bash(osascript:*)",
       "Bash(__NEW_LINE__ echo \"\")",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:modelcontextprotocol.io)"
     ],
     "deny": []
   }
