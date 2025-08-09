@@ -28,7 +28,7 @@ final class MCPServer {
             do {
                 logger.debug("Waiting for message...")
                 
-                guard let message = try readContentLengthMessage(from: stdin) else {
+                guard let message = try readNewlineDelimitedMessage(from: stdin) else {
                     logger.info("No more input, shutting down...")
                     break
                 }
@@ -52,14 +52,28 @@ final class MCPServer {
     }
     
     private func writeResponse(_ data: Data) throws {
-        let header = "Content-Length: \(data.count)\r\n\r\n"
-        print(header, terminator: "")
+        // Use newline-delimited JSON-RPC format for stdio transport (2025 MCP spec)
         if let responseString = String(data: data, encoding: .utf8) {
-            print(responseString, terminator: "")
+            print(responseString) // This adds a newline automatically
         }
         fflush(stdout)
     }
 
+    private func readNewlineDelimitedMessage(from handle: FileHandle) throws -> Data? {
+        // Read a single line (newline-delimited JSON-RPC for stdio transport)
+        guard let lineData = try readLine(from: handle) else {
+            return nil
+        }
+        
+        // Ensure it's valid JSON
+        let lineString = String(data: lineData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let jsonString = lineString, !jsonString.isEmpty else {
+            return nil
+        }
+        
+        return jsonString.data(using: .utf8)
+    }
+    
     private func readContentLengthMessage(from handle: FileHandle) throws -> Data? {
         // Read headers until empty line
         var contentLength: Int?
