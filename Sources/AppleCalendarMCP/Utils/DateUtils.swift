@@ -91,11 +91,14 @@ struct DateUtils {
     /// Format event for JSON output with consistent datetime fields
     static func formatEventForOutput(_ event: EKEvent) -> [String: Any] {
         var eventDict: [String: Any] = [
+            "id": event.eventIdentifier ?? "",
             "title": event.title ?? "Untitled",
             "start_date": dateOnlyFormatter.string(from: event.startDate),
             "end_date": dateOnlyFormatter.string(from: event.endDate),
             "is_all_day": event.isAllDay,
             "calendar": event.calendar?.title ?? "Unknown",
+            "location": event.location ?? "",
+            "notes": event.notes ?? "",
             "start_datetime": iso8601Formatter.string(from: event.startDate),
             "end_datetime": iso8601Formatter.string(from: event.endDate)
         ]

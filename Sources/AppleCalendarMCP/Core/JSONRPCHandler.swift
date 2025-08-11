@@ -155,6 +155,11 @@ final class JSONRPCHandler {
                                 "exclude_read_only": [
                                     "type": "boolean",
                                     "description": "Exclude read-only calendars"
+                                ],
+                                "preset": [
+                                    "type": "string", 
+                                    "enum": ["work", "personal", "main", "all", "clean", "debug"],
+                                    "description": "Quick filter presets: 'work' (Work calendars only), 'personal' (Personal calendars), 'main' (Core calendars), 'all' (No filters), 'clean' (Exclude subscribed/holidays/sports), 'debug' (Show everything for troubleshooting)"
                                 ]
                             ]
                         ]
@@ -163,7 +168,7 @@ final class JSONRPCHandler {
             ],
             [
                 "name": "check_calendar_conflicts",
-                "description": "Check multiple dates for calendar conflicts based on time preferences",
+                "description": "Check multiple dates for calendar conflicts based on time preferences. Tip: Use calendar_filter presets but avoid restrictive event_filter to ensure all conflicts are found.",
                 "inputSchema": [
                     "type": "object",
                     "properties": [
@@ -182,6 +187,25 @@ final class JSONRPCHandler {
                             "items": ["type": "string"],
                             "description": "Optional array of specific calendar names to check"
                         ],
+                        "calendar_filter": [
+                            "type": "object",
+                            "description": "Advanced filtering options for calendars (same schema as list_calendars)"
+                        ],
+                        "event_filter": [
+                            "type": "object",
+                            "properties": [
+                                "exclude_all_day": ["type": "boolean", "description": "Exclude all-day events"],
+                                "exclude_busy": ["type": "boolean", "description": "Exclude busy events"],
+                                "exclude_tentative": ["type": "boolean", "description": "Exclude tentative events"],
+                                "exclude_private": ["type": "boolean", "description": "Exclude private events"],
+                                "title_contains": ["type": "array", "items": ["type": "string"], "description": "Only include events with titles containing these keywords (ignored if work_meetings_only is true)"],
+                                "title_excludes": ["type": "array", "items": ["type": "string"], "description": "Exclude events with titles containing these keywords"],
+                                "minimum_duration_minutes": ["type": "number", "description": "Minimum event duration in minutes"],
+                                "maximum_duration_minutes": ["type": "number", "description": "Maximum event duration in minutes"],
+                                "work_meetings_only": ["type": "boolean", "description": "Smart work meeting detection using time, duration, calendar type, and content heuristics (recommended over title_contains)"],
+                                "business_hours_only": ["type": "boolean", "description": "Only include events during business hours (8 AM - 6 PM)"]
+                            ]
+                        ],
                         "evening_hours": [
                             "type": "object",
                             "properties": [
@@ -195,7 +219,7 @@ final class JSONRPCHandler {
             ],
             [
                 "name": "get_calendar_events",
-                "description": "Get all events in a specified date range",
+                "description": "Get all events in a specified date range. Tip: Start without event_filter to see all events, then filter if needed to avoid missing important meetings.",
                 "inputSchema": [
                     "type": "object",
                     "properties": [
@@ -211,6 +235,14 @@ final class JSONRPCHandler {
                             "type": "array",
                             "items": ["type": "string"],
                             "description": "Optional array of specific calendar names"
+                        ],
+                        "calendar_filter": [
+                            "type": "object",
+                            "description": "Advanced filtering options for calendars (same schema as list_calendars)"
+                        ],
+                        "event_filter": [
+                            "type": "object",
+                            "description": "Filtering options for events (same schema as check_calendar_conflicts)"
                         ]
                     ],
                     "required": ["start_date", "end_date"]
@@ -244,6 +276,14 @@ final class JSONRPCHandler {
                             "items": ["type": "string"],
                             "description": "Optional array of specific calendar names"
                         ],
+                        "calendar_filter": [
+                            "type": "object",
+                            "description": "Advanced filtering options for calendars (same schema as list_calendars)"
+                        ],
+                        "event_filter": [
+                            "type": "object",
+                            "description": "Filtering options for events (same schema as check_calendar_conflicts)"
+                        ],
                         "evening_hours": [
                             "type": "object",
                             "properties": [
@@ -253,6 +293,136 @@ final class JSONRPCHandler {
                         ]
                     ],
                     "required": ["date_range", "duration_minutes", "time_preferences"]
+                ]
+            ],
+            [
+                "name": "create_event",
+                "description": "Create a new calendar event with full details including location, attendees, and recurrence. Can copy properties from an existing event.",
+                "inputSchema": [
+                    "type": "object",
+                    "properties": [
+                        "title": [
+                            "type": "string",
+                            "description": "Event title"
+                        ],
+                        "start_datetime": [
+                            "type": "string",
+                            "description": "Start date and time in ISO8601 format (e.g., 2025-08-15T14:30:00)"
+                        ],
+                        "end_datetime": [
+                            "type": "string", 
+                            "description": "End date and time in ISO8601 format"
+                        ],
+                        "calendar": [
+                            "type": "string",
+                            "description": "Calendar name (optional, defaults to primary calendar or copied from source event)"
+                        ],
+                        "location": [
+                            "type": "string",
+                            "description": "Event location"
+                        ],
+                        "notes": [
+                            "type": "string",
+                            "description": "Event notes/description"
+                        ],
+                        "is_all_day": [
+                            "type": "boolean",
+                            "description": "Whether this is an all-day event"
+                        ],
+                        "attendees": [
+                            "type": "array",
+                            "items": ["type": "string"],
+                            "description": "List of attendee email addresses"
+                        ],
+                        "alarm_minutes": [
+                            "type": "array",
+                            "items": ["type": "integer"],
+                            "description": "Alert times in minutes before event (e.g., [15, 60] for 15min and 1hr alerts)"
+                        ],
+                        "recurrence": [
+                            "type": "object",
+                            "properties": [
+                                "frequency": [
+                                    "type": "string",
+                                    "enum": ["daily", "weekly", "monthly", "yearly"],
+                                    "description": "How often the event repeats"
+                                ],
+                                "interval": ["type": "integer", "description": "Repeat every N periods (e.g., every 2 weeks)"],
+                                "count": ["type": "integer", "description": "Number of occurrences"],
+                                "until": ["type": "string", "description": "End date in ISO8601 format"],
+                                "days_of_week": [
+                                    "type": "array", 
+                                    "items": ["type": "integer"],
+                                    "description": "Days of week for weekly recurrence (1=Sunday, 2=Monday, etc.)"
+                                ]
+                            ],
+                            "required": ["frequency"]
+                        ],
+                        "copy_format_from": [
+                            "type": "string",
+                            "description": "Event ID to copy properties from (calendar, duration, alarms, all-day setting, etc.)"
+                        ],
+                        "inherit": [
+                            "type": "array",
+                            "items": ["type": "string"],
+                            "enum": [["calendar", "all_day_setting", "duration", "alarm_settings", "location", "notes"]],
+                            "description": "Properties to inherit from source event. Options: calendar, all_day_setting, duration, alarm_settings, location, notes. If not specified, inherits calendar, all_day_setting, and alarm_settings by default."
+                        ]
+                    ],
+                    "required": ["title", "start_datetime", "end_datetime"]
+                ]
+            ],
+            [
+                "name": "modify_event",
+                "description": "Modify an existing calendar event. Only specified fields will be updated.",
+                "inputSchema": [
+                    "type": "object",
+                    "properties": [
+                        "event_id": [
+                            "type": "string",
+                            "description": "Unique identifier of the event to modify"
+                        ],
+                        "title": ["type": "string", "description": "New event title"],
+                        "start_datetime": ["type": "string", "description": "New start time in ISO8601 format"],
+                        "end_datetime": ["type": "string", "description": "New end time in ISO8601 format"],
+                        "location": ["type": "string", "description": "New location"],
+                        "notes": ["type": "string", "description": "New notes/description"],
+                        "is_all_day": ["type": "boolean", "description": "Change all-day status"],
+                        "attendees": [
+                            "type": "array",
+                            "items": ["type": "string"],
+                            "description": "New attendee list (replaces existing)"
+                        ],
+                        "alarm_minutes": [
+                            "type": "array", 
+                            "items": ["type": "integer"],
+                            "description": "New alert times (replaces existing)"
+                        ],
+                        "move_to_calendar": [
+                            "type": "string",
+                            "description": "Move event to a different calendar"
+                        ]
+                    ],
+                    "required": ["event_id"]
+                ]
+            ],
+            [
+                "name": "delete_event",
+                "description": "Delete a calendar event. Supports recurring event options.",
+                "inputSchema": [
+                    "type": "object",
+                    "properties": [
+                        "event_id": [
+                            "type": "string",
+                            "description": "Unique identifier of the event to delete"
+                        ],
+                        "delete_recurring": [
+                            "type": "string",
+                            "enum": ["this_only", "this_and_future", "all"],
+                            "description": "For recurring events: delete this occurrence, this and future, or all occurrences"
+                        ]
+                    ],
+                    "required": ["event_id"]
                 ]
             ]
         ]
@@ -292,6 +462,12 @@ final class JSONRPCHandler {
                 result = try await handleFindSlots(arguments: arguments)
             case "list_calendars":
                 result = try await handleListCalendars(arguments: arguments)
+            case "create_event":
+                result = try await handleCreateEvent(arguments: arguments)
+            case "modify_event":
+                result = try await handleModifyEvent(arguments: arguments)
+            case "delete_event":
+                result = try await handleDeleteEvent(arguments: arguments)
             default:
                 return MCPResponse(
                     id: request.id,
@@ -303,6 +479,15 @@ final class JSONRPCHandler {
             return MCPResponse(id: request.id, result: ["content": [["type": "text", "text": try String(data: JSONSerialization.data(withJSONObject: result, options: .prettyPrinted), encoding: .utf8) ?? ""]]])
         } catch {
             logger.error("Error handling tool call: \(error)", metadata: metadata)
+            
+            // Provide more specific error messages for CalendarError
+            if let calendarError = error as? CalendarError {
+                return MCPResponse(
+                    id: request.id,
+                    error: MCPError(code: -32603, message: calendarError.errorDescription ?? "Calendar error", data: ["error_type": String(describing: calendarError)])
+                )
+            }
+            
             return MCPResponse(
                 id: request.id,
                 error: MCPError(code: -32603, message: "Internal error", data: ["details": error.localizedDescription])
@@ -322,11 +507,12 @@ final class JSONRPCHandler {
         )
         let eveningHours = request.eveningHours ?? EveningHours()
 
-    let conflicts = try await calendarManager.checkConflicts(
+        let conflicts = try await calendarManager.checkConflicts(
             for: dates,
             timeType: request.timeType,
             calendars: calendars,
-            eveningHours: eveningHours
+            eveningHours: eveningHours,
+            eventFilter: request.eventFilter?.toEventFilter()
         )
 
         var result: [String: Any] = [:]
@@ -386,17 +572,31 @@ final class JSONRPCHandler {
         let request = try decoder.decode(GetEventsRequest.self, from: argumentsData)
 
         let startDate = try DateUtils.parseDate(request.startDate)
-        let endDate = try DateUtils.parseDate(request.endDate)
+        let parsedEndDate = try DateUtils.parseDate(request.endDate)
 
-        try DateUtils.validateDateRange(start: startDate, end: endDate)
+        try DateUtils.validateDateRange(start: startDate, end: parsedEndDate)
+        
+        // Fix EventKit issue: For same-day queries, end date must be next day
+        // EventKit uses exclusive end dates, so 2025-08-15 to 2025-08-15 returns nothing
+        let endDate: Date
+        if Calendar.current.isDate(startDate, inSameDayAs: parsedEndDate) {
+            // Single day query - extend end date to next day for EventKit
+            endDate = Calendar.current.date(byAdding: .day, value: 1, to: parsedEndDate) ?? parsedEndDate
+            logger.debug("Single-day query detected: \(request.startDate) -> querying \(startDate) to \(endDate)")
+        } else {
+            // Multi-day query - use as-is but ensure end date is start of next day
+            endDate = Calendar.current.startOfDay(for: Calendar.current.date(byAdding: .day, value: 1, to: parsedEndDate) ?? parsedEndDate)
+            logger.debug("Multi-day query: \(request.startDate) to \(request.endDate) -> querying \(startDate) to \(endDate)")
+        }
 
         let calendars = try calendarManager.getCalendarsFromRequest(
             calendarNames: request.calendarNames,
             calendarFilter: request.calendarFilter
         )
         let events = await calendarManager.getEvents(from: startDate, to: endDate, calendars: calendars)
+        let filteredEvents = request.eventFilter != nil ? calendarManager.filterEvents(events, using: request.eventFilter!.toEventFilter()) : events
 
-        let eventData = events.map { $0.formattedOutput }
+        let eventData = filteredEvents.map { $0.formattedOutput }
 
         return ["events": eventData]
     }
@@ -406,9 +606,19 @@ final class JSONRPCHandler {
         let request = try decoder.decode(FindSlotsRequest.self, from: argumentsData)
 
         let startDate = try DateUtils.parseDate(request.dateRange.start)
-        let endDate = try DateUtils.parseDate(request.dateRange.end)
+        let parsedEndDate = try DateUtils.parseDate(request.dateRange.end)
 
-        try DateUtils.validateDateRange(start: startDate, end: endDate)
+        try DateUtils.validateDateRange(start: startDate, end: parsedEndDate)
+        
+        // Fix EventKit issue: For same-day queries, extend end date to next day
+        let endDate: Date
+        if Calendar.current.isDate(startDate, inSameDayAs: parsedEndDate) {
+            endDate = Calendar.current.date(byAdding: .day, value: 1, to: parsedEndDate) ?? parsedEndDate
+            logger.debug("Single-day slot query: \(request.dateRange.start) -> querying \(startDate) to \(endDate)")
+        } else {
+            endDate = Calendar.current.startOfDay(for: Calendar.current.date(byAdding: .day, value: 1, to: parsedEndDate) ?? parsedEndDate)
+            logger.debug("Multi-day slot query: \(request.dateRange.start) to \(request.dateRange.end) -> querying \(startDate) to \(endDate)")
+        }
 
         // Validate duration
         guard request.durationMinutes > 0 && request.durationMinutes <= 1440 else { // Max 24 hours
@@ -423,12 +633,13 @@ final class JSONRPCHandler {
         )
         let eveningHours = request.eveningHours ?? EveningHours()
 
-    let slots = try await calendarManager.findAvailableSlots(
+        let slots = try await calendarManager.findAvailableSlots(
             in: dateRange,
             duration: duration,
             timePreferences: request.timePreferences,
             calendars: calendars,
-            eveningHours: eveningHours
+            eveningHours: eveningHours,
+            eventFilter: request.eventFilter?.toEventFilter()
         )
 
         let slotData = slots.map { $0.formattedOutput }
@@ -497,5 +708,63 @@ final class JSONRPCHandler {
         @unknown default:
             return "unknown"
         }
+    }
+    
+    // MARK: - Event Management Handlers
+    
+    private func handleCreateEvent(arguments: [String: Any]) async throws -> [String: Any] {
+        let argumentsData = try JSONSerialization.data(withJSONObject: arguments)
+        let request = try decoder.decode(CreateEventRequest.self, from: argumentsData)
+        
+        let event = try await calendarManager.createEvent(request)
+        
+        return [
+            "success": true,
+            "event": [
+                "id": event.eventIdentifier ?? "",
+                "title": event.title ?? "",
+                "start_datetime": DateUtils.iso8601Formatter.string(from: event.startDate),
+                "end_datetime": DateUtils.iso8601Formatter.string(from: event.endDate),
+                "calendar": event.calendar?.title ?? "",
+                "location": event.location ?? "",
+                "notes": event.notes ?? "",
+                "is_all_day": event.isAllDay
+            ],
+            "message": "Event '\(event.title ?? "Untitled")' created successfully"
+        ]
+    }
+    
+    private func handleModifyEvent(arguments: [String: Any]) async throws -> [String: Any] {
+        let argumentsData = try JSONSerialization.data(withJSONObject: arguments)
+        let request = try decoder.decode(ModifyEventRequest.self, from: argumentsData)
+        
+        let event = try await calendarManager.modifyEvent(request)
+        
+        return [
+            "success": true,
+            "event": [
+                "id": event.eventIdentifier ?? "",
+                "title": event.title ?? "",
+                "start_datetime": DateUtils.iso8601Formatter.string(from: event.startDate),
+                "end_datetime": DateUtils.iso8601Formatter.string(from: event.endDate),
+                "calendar": event.calendar?.title ?? "",
+                "location": event.location ?? "",
+                "notes": event.notes ?? "",
+                "is_all_day": event.isAllDay
+            ],
+            "message": "Event '\(event.title ?? "Untitled")' modified successfully"
+        ]
+    }
+    
+    private func handleDeleteEvent(arguments: [String: Any]) async throws -> [String: Any] {
+        let argumentsData = try JSONSerialization.data(withJSONObject: arguments)
+        let request = try decoder.decode(DeleteEventRequest.self, from: argumentsData)
+        
+        let success = try await calendarManager.deleteEvent(request)
+        
+        return [
+            "success": success,
+            "message": success ? "Event deleted successfully" : "Failed to delete event"
+        ]
     }
 }

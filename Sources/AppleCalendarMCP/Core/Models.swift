@@ -385,6 +385,7 @@ struct CheckConflictsRequest: Codable {
     let timeType: TimeType
     let calendarNames: [String]?
     let calendarFilter: CalendarFilterRequest?
+    let eventFilter: EventFilterRequest?
     let eveningHours: EveningHours?
 
     enum CodingKeys: String, CodingKey {
@@ -392,6 +393,7 @@ struct CheckConflictsRequest: Codable {
         case timeType = "time_type"
         case calendarNames = "calendar_names"
         case calendarFilter = "calendar_filter"
+        case eventFilter = "event_filter"
         case eveningHours = "evening_hours"
     }
 }
@@ -408,12 +410,14 @@ struct GetEventsRequest: Codable {
     let endDate: String
     let calendarNames: [String]?
     let calendarFilter: CalendarFilterRequest?
+    let eventFilter: EventFilterRequest?
 
     enum CodingKeys: String, CodingKey {
         case startDate = "start_date"
         case endDate = "end_date"
         case calendarNames = "calendar_names"
         case calendarFilter = "calendar_filter"
+        case eventFilter = "event_filter"
     }
 }
 
@@ -432,6 +436,7 @@ struct FindSlotsRequest: Codable {
     let timePreferences: TimeType
     let calendarNames: [String]?
     let calendarFilter: CalendarFilterRequest?
+    let eventFilter: EventFilterRequest?
     let eveningHours: EveningHours?
 
     enum CodingKeys: String, CodingKey {
@@ -440,6 +445,7 @@ struct FindSlotsRequest: Codable {
         case timePreferences = "time_preferences"
         case calendarNames = "calendar_names"
         case calendarFilter = "calendar_filter"
+        case eventFilter = "event_filter"
         case eveningHours = "evening_hours"
     }
 }
@@ -454,6 +460,109 @@ struct ListCalendarsRequest: Codable {
     enum CodingKeys: String, CodingKey {
         case calendarFilter = "calendar_filter"
     }
+}
+
+// MARK: - Event Management Models
+
+/// Request structure for create_event tool
+struct CreateEventRequest: Codable {
+    let title: String
+    let startDateTime: String  // ISO8601 format
+    let endDateTime: String    // ISO8601 format
+    let calendar: String?      // Calendar name (optional, defaults to primary)
+    let location: String?
+    let notes: String?
+    let isAllDay: Bool?
+    let attendees: [String]?   // Email addresses
+    let alarmMinutes: [Int]?   // Alert times in minutes before event
+    let recurrence: RecurrenceRule?
+    let copyFormatFrom: String? // Event ID to copy properties from
+    let inherit: [String]?      // Properties to inherit (calendar, all_day_setting, duration, alarm_settings)
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case startDateTime = "start_datetime"
+        case endDateTime = "end_datetime"
+        case calendar
+        case location
+        case notes
+        case isAllDay = "is_all_day"
+        case attendees
+        case alarmMinutes = "alarm_minutes"
+        case recurrence
+        case copyFormatFrom = "copy_format_from"
+        case inherit
+    }
+}
+
+/// Request structure for modify_event tool
+struct ModifyEventRequest: Codable {
+    let eventId: String
+    let title: String?
+    let startDateTime: String?
+    let endDateTime: String?
+    let location: String?
+    let notes: String?
+    let isAllDay: Bool?
+    let attendees: [String]?
+    let alarmMinutes: [Int]?
+    let moveToCalendar: String?
+
+    enum CodingKeys: String, CodingKey {
+        case eventId = "event_id"
+        case title
+        case startDateTime = "start_datetime"
+        case endDateTime = "end_datetime"
+        case location
+        case notes
+        case isAllDay = "is_all_day"
+        case attendees
+        case alarmMinutes = "alarm_minutes"
+        case moveToCalendar = "move_to_calendar"
+    }
+}
+
+/// Request structure for delete_event tool
+struct DeleteEventRequest: Codable {
+    let eventId: String
+    let deleteRecurring: DeleteRecurringOption?
+
+    enum CodingKeys: String, CodingKey {
+        case eventId = "event_id"
+        case deleteRecurring = "delete_recurring"
+    }
+}
+
+/// Recurrence rule for repeating events
+struct RecurrenceRule: Codable {
+    let frequency: RecurrenceFrequency
+    let interval: Int?        // Every N periods (default 1)
+    let count: Int?          // Number of occurrences
+    let until: String?       // End date (ISO8601)
+    let daysOfWeek: [Int]?   // 1=Sunday, 2=Monday, etc.
+
+    enum CodingKeys: String, CodingKey {
+        case frequency
+        case interval
+        case count
+        case until
+        case daysOfWeek = "days_of_week"
+    }
+}
+
+/// Recurrence frequency options
+enum RecurrenceFrequency: String, Codable {
+    case daily = "daily"
+    case weekly = "weekly" 
+    case monthly = "monthly"
+    case yearly = "yearly"
+}
+
+/// Options for deleting recurring events
+enum DeleteRecurringOption: String, Codable {
+    case thisOnly = "this_only"
+    case thisAndFuture = "this_and_future"
+    case all = "all"
 }
 
 /// Date range specification using YYYY-MM-DD format strings
