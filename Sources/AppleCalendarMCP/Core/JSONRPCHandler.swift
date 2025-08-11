@@ -51,6 +51,10 @@ final class JSONRPCHandler {
                 response = handleToolsList(request: request)
             case "tools/call":
                 response = await handleToolCall(request: request)
+            case "prompts/list":
+                response = handlePromptsList(request: request)
+            case "resources/list":
+                response = handleResourcesList(request: request)
             default:
                 response = MCPResponse(
                     id: request.id,
@@ -75,7 +79,9 @@ final class JSONRPCHandler {
     }
 
     func createErrorResponse(id: MCPRequestID?, error: MCPError) -> MCPResponse {
-        return MCPResponse(id: id ?? nil, error: error)
+        // Ensure we never send null ID - use a default ID for parse errors
+        let responseId = id ?? AnyCodable("error")
+        return MCPResponse(id: responseId, error: error)
     }
 
     private func handleInitialize(request: MCPRequest) -> MCPResponse {
@@ -91,6 +97,16 @@ final class JSONRPCHandler {
         ]
 
         return MCPResponse(id: request.id, result: result)
+    }
+
+    private func handlePromptsList(request: MCPRequest) -> MCPResponse {
+        // Return empty prompts list since we don't provide any prompts
+        return MCPResponse(id: request.id, result: ["prompts": []])
+    }
+    
+    private func handleResourcesList(request: MCPRequest) -> MCPResponse {
+        // Return empty resources list since we don't provide any resources
+        return MCPResponse(id: request.id, result: ["resources": []])
     }
 
     private func handleToolsList(request: MCPRequest) -> MCPResponse {

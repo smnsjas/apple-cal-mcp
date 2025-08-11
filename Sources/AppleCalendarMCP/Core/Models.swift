@@ -84,10 +84,12 @@ struct MCPResponse: Encodable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(jsonrpc, forKey: .jsonrpc)
 
+        // Always encode an ID - never null for MCP compliance
         if let id = id {
             try container.encode(id, forKey: .id)
         } else {
-            try container.encodeNil(forKey: .id)
+            // Fallback to string "null" if somehow we have a null ID
+            try container.encode("null", forKey: .id)
         }
 
         if let result = result {
@@ -203,6 +205,11 @@ struct EveningHours: Codable {
     let startMinute: Int
     let endHour: Int
     let endMinute: Int
+    
+    enum CodingKeys: String, CodingKey {
+        case startHour, startMinute, endHour, endMinute
+        case start, end
+    }
 
     init(start: String = "17:00", end: String = "23:00") throws {
         guard let (startHour, startMinute) = Self.parseTime(start) else {
@@ -251,6 +258,46 @@ struct EveningHours: Codable {
 
     private static func isValidTime(hour: Int, minute: Int) -> Bool {
         return (0...23).contains(hour) && (0...59).contains(minute)
+    }
+    
+    // Custom decoding to handle both internal format (startHour/startMinute/endHour/endMinute) 
+    // and external API format (start/end time strings)
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Try to decode from external API format first (start/end strings)
+        if let startString = try? container.decode(String.self, forKey: .start),
+           let endString = try? container.decode(String.self, forKey: .end) {
+            
+            guard let (startHour, startMinute) = Self.parseTime(startString) else {
+                throw DecodingError.dataCorruptedError(forKey: .start, in: container, 
+                    debugDescription: "Invalid start time format: \(startString)")
+            }
+            guard let (endHour, endMinute) = Self.parseTime(endString) else {
+                throw DecodingError.dataCorruptedError(forKey: .end, in: container, 
+                    debugDescription: "Invalid end time format: \(endString)")
+            }
+            
+            self.startHour = startHour
+            self.startMinute = startMinute
+            self.endHour = endHour
+            self.endMinute = endMinute
+        } else {
+            // Fall back to internal format (individual hour/minute fields)
+            self.startHour = try container.decode(Int.self, forKey: .startHour)
+            self.startMinute = try container.decode(Int.self, forKey: .startMinute)
+            self.endHour = try container.decode(Int.self, forKey: .endHour)
+            self.endMinute = try container.decode(Int.self, forKey: .endMinute)
+        }
+    }
+    
+    // Custom encoding - always use internal format for consistency
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(startHour, forKey: .startHour)
+        try container.encode(startMinute, forKey: .startMinute)
+        try container.encode(endHour, forKey: .endHour)
+        try container.encode(endMinute, forKey: .endMinute)
     }
 }
 

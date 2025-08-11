@@ -21,7 +21,6 @@ final class MCPServer {
 
         // Set up stdin/stdout communication for MCP protocol
         let stdin = FileHandle.standardInput
-        let stdout = FileHandle.standardOutput
 
         // Read messages with Content-Length framing
         while true {
