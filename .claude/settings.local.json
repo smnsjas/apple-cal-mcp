@@ -50,7 +50,11 @@
       "Bash(unset GITHUB_TOKEN)",
       "Bash(git config:*)",
       "Bash(git branch:*)",
-      "Bash(gh repo edit:*)"
+      "Bash(gh repo edit:*)",
+      "Bash(git remote remove:*)",
+      "Bash(env -u GITHUB_TOKEN gh repo create apple-cal-mcp --public --source=. --push)",
+      "Bash(grep:*)",
+      "Bash(source:*)"
     ],
     "deny": []
   }
