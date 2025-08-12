@@ -1,8 +1,0 @@
-Content-Length: 155
-
-{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test", "version": "1.0"}}}Content-Length: 65
-
-{"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}EOF
-
-echo "Testing complete MCP flow:"
-cat mcp_full_test.txt | /Users/jasonsimons/apple-cal-mcp --verbose 2>/dev/null | head -20 < /dev/null

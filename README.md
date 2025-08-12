@@ -13,6 +13,7 @@ A Model Context Protocol (MCP) server that provides automated calendar checking 
 ## Installation
 
 ### Prerequisites
+
 - macOS 12.0 or later
 - Xcode 14.0 or later
 - Swift 5.9 or later
@@ -20,17 +21,20 @@ A Model Context Protocol (MCP) server that provides automated calendar checking 
 ### Build from Source
 
 1. Clone this repository:
+
 ```bash
 git clone <repository-url>
 cd apple_cal_mcp
 ```
 
 2. Build the project:
+
 ```bash
 swift build -c release
 ```
 
 3. The executable will be available at:
+
 ```bash
 .build/release/apple-cal-mcp
 ```
@@ -38,11 +42,13 @@ swift build -c release
 ### Installation for MCP Use
 
 1. Copy the executable to a permanent location:
+
 ```bash
 cp .build/release/apple-cal-mcp /usr/local/bin/
 ```
 
 2. Make it executable:
+
 ```bash
 chmod +x /usr/local/bin/apple-cal-mcp
 ```
@@ -75,12 +81,14 @@ Add this server to your MCP client configuration:
 Check multiple dates for calendar conflicts based on time preferences.
 
 **Parameters:**
+
 - `dates` (required): Array of dates in YYYY-MM-DD format
 - `time_type` (required): "evening", "weekend", or "all_day"
 - `calendar_names` (optional): Array of specific calendar names to check
 - `evening_hours` (optional): Custom evening hours object with "start" and "end" times
 
 **Example:**
+
 ```json
 {
   "dates": ["2025-08-09", "2025-08-10", "2025-08-13"],
@@ -91,6 +99,7 @@ Check multiple dates for calendar conflicts based on time preferences.
 ```
 
 **Returns:**
+
 ```json
 {
   "2025-08-09": {
@@ -108,11 +117,13 @@ Check multiple dates for calendar conflicts based on time preferences.
 Get all events in a specified date range.
 
 **Parameters:**
+
 - `start_date` (required): Start date in YYYY-MM-DD format
 - `end_date` (required): End date in YYYY-MM-DD format
 - `calendar_names` (optional): Array of specific calendar names
 
 **Example:**
+
 ```json
 {
   "start_date": "2025-08-07",
@@ -126,6 +137,7 @@ Get all events in a specified date range.
 Find available time slots matching specified criteria.
 
 **Parameters:**
+
 - `date_range` (required): Object with "start" and "end" dates
 - `duration_minutes` (required): Minimum duration in minutes
 - `time_preferences` (required): "evening", "weekend", or "all_day"
@@ -133,6 +145,7 @@ Find available time slots matching specified criteria.
 - `evening_hours` (optional): Custom evening hours
 
 **Example:**
+
 ```json
 {
   "date_range": {"start": "2025-08-09", "end": "2025-08-30"},
@@ -150,6 +163,7 @@ Find available time slots matching specified criteria.
 ## Usage Examples
 
 ### Checking Evening Availability
+
 ```bash
 # Using with Claude Code or other MCP clients
 check_calendar_conflicts({
@@ -159,6 +173,7 @@ check_calendar_conflicts({
 ```
 
 ### Finding Weekend Slots
+
 ```bash
 find_available_slots({
   "date_range": {"start": "2025-08-10", "end": "2025-08-31"},
@@ -170,16 +185,19 @@ find_available_slots({
 ## Troubleshooting
 
 ### Calendar Permission Issues
+
 - Go to System Preferences → Security & Privacy → Privacy → Calendars
 - Ensure the terminal app you're using has calendar access
 - Restart the MCP server after granting permissions
 
 ### No Events Found
+
 - Verify calendar names with `get_calendar_events` first
 - Check that target calendars are enabled in Calendar app
 - Ensure date formats are correct (YYYY-MM-DD)
 
 ### Exchange Calendar Issues
+
 - Ensure Exchange account is properly configured in Calendar app
 - Verify calendar sync is working in Calendar app first
 - Try specifying the exact calendar name in `calendar_names` parameter
@@ -187,6 +205,7 @@ find_available_slots({
 ## Development
 
 ### Quick Start
+
 ```bash
 # Build the project
 make build
@@ -208,6 +227,7 @@ make install
 ```
 
 ### Manual Commands
+
 ```bash
 # Traditional commands still work
 swift build
@@ -215,10 +235,19 @@ swift run apple-cal-mcp --verbose
 swift test
 ```
 
-For complete project structure and command reference, see [docs/STRUCTURE.md](docs/STRUCTURE.md).
+## Documentation
+
+For detailed information:
+
+- **[docs/FEATURES.md](docs/FEATURES.md)** - Complete feature guide with examples
+- **[docs/TESTING.md](docs/TESTING.md)** - Testing guide and structure
+- **[docs/STRUCTURE.md](docs/STRUCTURE.md)** - Project organization
+- **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Development setup
 
 ### Debug Logging
+
 Use the `--verbose` flag to enable detailed logging:
+
 ```bash
 apple-cal-mcp --verbose
 ```
